@@ -1,0 +1,12 @@
+
+[package]
+name = "litekv"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+actix-web = "3.3.2"
+anyhow = "1.0.42"
+argh = "0.1.5"
+env_logger = "0.9.0"
+rusqlite = { version = "0.25.3", features = [ "bundled" ] }
