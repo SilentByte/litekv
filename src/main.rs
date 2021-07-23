@@ -8,40 +8,17 @@ use actix_web::{
     App,
     HttpServer,
 };
-use argh::FromArgs;
+use litekv::config::AppConfig;
 use litekv::repo::Repo;
 use litekv::routes;
-
-#[derive(Debug)]
-struct Person {
-    id: i32,
-    name: String,
-    data: Option<Vec<u8>>,
-}
-
-/// Reach new heights.
-#[derive(Debug, Clone, FromArgs)]
-struct AppConfig {
-    /// host name or address for which LiteKV is listening
-    #[argh(option, default = "\"127.0.0.1\".to_string()")]
-    host: String,
-
-    /// port on which LiteKV is listening
-    #[argh(option, default = "8088")]
-    port: usize,
-
-    /// path to the database file
-    #[argh(option)]
-    db: Option<String>,
-}
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
-    let config: AppConfig = argh::from_env();
-    let bind_address = format!("{}:{}", config.host, config.port);
-    let repo = if let Some(db) = &config.db {
+    let config = AppConfig::load();
+    let bind_address = config.address();
+    let repo = if let Some(db) = &config.db() {
         web::Data::new(Repo::create_with_file(db)?)
     } else {
         web::Data::new(Repo::create_in_memory()?)
