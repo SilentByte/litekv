@@ -27,8 +27,9 @@ async fn main() -> anyhow::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(config.clone())
-            .data(repo.clone())
+            .app_data(repo.clone())
             .service(web::resource("/status").route(web::get().to(routes::status)))
+            .service(web::resource("/commit").route(web::post().to(routes::commit_data)))
     })
     .bind(bind_address)?
     .run()
