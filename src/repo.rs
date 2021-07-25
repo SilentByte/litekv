@@ -14,7 +14,6 @@ use indoc::indoc;
 use rusqlite::{
     params,
     Connection,
-    Transaction,
 };
 
 #[derive(Debug)]
@@ -66,7 +65,7 @@ impl Repo {
         &self,
         scope: &str,
         key: &str,
-        value: &str,
+        value: &serde_json::Value,
         created_on: DateTime<Utc>,
         expires_on: Option<DateTime<Utc>>,
     ) -> anyhow::Result<()> {
