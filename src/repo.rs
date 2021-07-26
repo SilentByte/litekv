@@ -16,7 +16,7 @@ use rusqlite::{
     Connection,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QueryResult {
     pub value: serde_json::Value,
     pub created_on: DateTime<Utc>,
@@ -89,27 +89,35 @@ impl Repo {
         Ok(())
     }
 
-    pub fn query_data(&self, scope: &str, key: &str) -> anyhow::Result<QueryResult> {
+    pub fn query_data(
+        &self,
+        scope: &str,
+        key: &str,
+        limit: Option<u64>,
+    ) -> anyhow::Result<Vec<QueryResult>> {
         // language=sql
-        let result = self.connection.lock().unwrap().query_row(
-            indoc! {r#"
+        let result = self
+            .connection
+            .lock()
+            .unwrap()
+            .prepare_cached(indoc! {r#"
                 SELECT value, created_on, expires_on
                 FROM store
                 WHERE scope = ?1
                     AND key = ?2
                     AND (?3 IS NULL OR expires_on IS NULL OR expires_on < ?3)
                 ORDER BY created_on DESC
-                LIMIT 1
-            "#},
-            params![scope, key, Utc::now()],
-            |row| {
+                LIMIT coalesce(?4, -1);
+            "#})?
+            .query_map(params![scope, key, Utc::now(), limit], |row| {
                 Ok(QueryResult {
                     value: row.get(0)?,
                     created_on: row.get(1)?,
                     expires_on: row.get(2)?,
                 })
-            },
-        )?;
+            })?
+            .map(|row| row.unwrap())
+            .collect();
 
         Ok(result)
     }

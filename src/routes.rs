@@ -3,13 +3,11 @@
 ////! Copyright (c) 2021 SilentByte <https://silentbyte.com/>
 ////!
 
-use actix_web::http::StatusCode;
 use actix_web::{
     web,
     HttpRequest,
     HttpResponse,
     Responder,
-    ResponseError,
 };
 use chrono::{
     DateTime,
@@ -20,44 +18,12 @@ use serde::{
     Serialize,
 };
 
+use crate::api::ApiError;
 use crate::config::AppConfig;
 use crate::repo::Repo;
 
 pub async fn status() -> impl Responder {
     HttpResponse::NoContent()
-}
-
-impl std::fmt::Debug for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        error_chain_fmt(self, f)
-    }
-}
-
-pub fn error_chain_fmt(
-    e: &impl std::error::Error,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    writeln!(f, "{}\n", e)?;
-    let mut current = e.source();
-    while let Some(cause) = current {
-        writeln!(f, "Caused by:\n\t{}", cause)?;
-        current = cause.source();
-    }
-    Ok(())
-}
-
-#[derive(thiserror::Error)]
-pub enum ApiError {
-    #[error(transparent)]
-    UnknownError(#[from] anyhow::Error),
-}
-
-impl ResponseError for ApiError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            ApiError::UnknownError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +47,7 @@ pub async fn commit_data(
 pub struct QueryInput {
     scope: String,
     key: String,
+    limit: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,10 +63,33 @@ pub async fn query_data(
     repo: web::Data<Repo>,
     data: web::Json<QueryInput>,
 ) -> Result<HttpResponse, ApiError> {
-    let data = repo.query_data(&data.scope, &data.key)?;
-    Ok(HttpResponse::Ok().json(QueryResponse {
-        value: data.value,
-        created_on: data.created_on,
-        expires_on: data.expires_on,
-    }))
+    let result: Vec<QueryResponse> = repo
+        .query_data(&data.scope, &data.key, data.limit)?
+        .into_iter()
+        .map(|d| QueryResponse {
+            value: d.value,
+            created_on: d.created_on,
+            expires_on: d.expires_on,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(result))
+}
+
+pub async fn get_data(
+    request: HttpRequest,
+    web::Path((scope, key)): web::Path<(String, String)>,
+    config: web::Data<AppConfig>,
+    repo: web::Data<Repo>,
+) -> Result<HttpResponse, ApiError> {
+    let result = repo.query_data(&scope, &key, Some(1))?.first().cloned();
+    if let Some(data) = result {
+        Ok(HttpResponse::Ok().json(QueryResponse {
+            value: data.value,
+            created_on: data.created_on,
+            expires_on: data.expires_on,
+        }))
+    } else {
+        Ok(HttpResponse::NotFound().finish())
+    }
 }

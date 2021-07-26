@@ -3,6 +3,7 @@
 ////! Copyright (c) 2021 SilentByte <https://silentbyte.com/>
 ////!
 
+pub mod api;
 pub mod config;
 pub mod repo;
 pub mod routes;
