@@ -35,7 +35,7 @@ impl Repo {
             OpenFlags::SQLITE_OPEN_READ_ONLY
                 | OpenFlags::SQLITE_OPEN_NO_MUTEX
                 | OpenFlags::SQLITE_OPEN_URI
-        } else{
+        } else {
             OpenFlags::SQLITE_OPEN_READ_WRITE
                 | OpenFlags::SQLITE_OPEN_CREATE
                 | OpenFlags::SQLITE_OPEN_NO_MUTEX
@@ -105,6 +105,8 @@ impl Repo {
         &self,
         scope: &str,
         key: &str,
+        start_on: Option<DateTime<Utc>>,
+        end_on: Option<DateTime<Utc>>,
         limit: Option<u64>,
     ) -> anyhow::Result<Vec<QueryResult>> {
         // language=sql
@@ -118,16 +120,21 @@ impl Repo {
                 WHERE scope = ?1
                     AND key = ?2
                     AND (?3 IS NULL OR expires_on IS NULL OR expires_on < ?3)
+                    AND (?4 IS NULL OR created_on >= ?4)
+                    AND (?5 IS NULL OR created_on <= ?5)
                 ORDER BY created_on DESC
-                LIMIT coalesce(?4, -1);
+                LIMIT coalesce(?6, -1);
             "#})?
-            .query_map(params![scope, key, Utc::now(), limit], |row| {
-                Ok(QueryResult {
-                    value: row.get(0)?,
-                    created_on: row.get(1)?,
-                    expires_on: row.get(2)?,
-                })
-            })?
+            .query_map(
+                params![scope, key, Utc::now(), start_on, end_on, limit],
+                |row| {
+                    Ok(QueryResult {
+                        value: row.get(0)?,
+                        created_on: row.get(1)?,
+                        expires_on: row.get(2)?,
+                    })
+                },
+            )?
             .map(|row| row.unwrap())
             .collect();
 

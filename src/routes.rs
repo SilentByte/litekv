@@ -49,6 +49,8 @@ pub async fn commit_data(
 pub struct QueryInput {
     scope: String,
     key: String,
+    start_on: Option<DateTime<Utc>>,
+    end_on: Option<DateTime<Utc>>,
     limit: Option<u64>,
 }
 
@@ -64,7 +66,13 @@ pub async fn query_data(
     data: web::Json<QueryInput>,
 ) -> Result<HttpResponse, ApiError> {
     let result: Vec<QueryResponse> = repo
-        .query_data(&data.scope, &data.key, data.limit)?
+        .query_data(
+            &data.scope,
+            &data.key,
+            data.start_on,
+            data.end_on,
+            data.limit,
+        )?
         .into_iter()
         .map(|d| QueryResponse {
             value: d.value,
@@ -80,7 +88,10 @@ pub async fn get_data(
     web::Path((scope, key)): web::Path<(String, String)>,
     repo: web::Data<Repo>,
 ) -> Result<HttpResponse, ApiError> {
-    let result = repo.query_data(&scope, &key, Some(1))?.first().cloned();
+    let result = repo
+        .query_data(&scope, &key, None, None, Some(1))?
+        .first()
+        .cloned();
     if let Some(data) = result {
         Ok(HttpResponse::Ok().json(QueryResponse {
             value: data.value,
