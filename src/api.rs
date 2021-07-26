@@ -32,6 +32,9 @@ pub enum ApiError {
 
     #[error("Value with key '{0}' could not be found")]
     ValueNotFound(String),
+
+    #[error("Data Store is in read-only mode")]
+    ReadonlyDataStore,
 }
 
 impl ResponseError for ApiError {
@@ -39,6 +42,7 @@ impl ResponseError for ApiError {
         match self {
             ApiError::UnknownError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::ValueNotFound(_) => StatusCode::NOT_FOUND,
+            ApiError::ReadonlyDataStore => StatusCode::FORBIDDEN,
         }
     }
 }

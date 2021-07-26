@@ -19,15 +19,32 @@ pub struct AppConfig {
     /// path to the database file
     #[argh(option)]
     db: Option<String>,
+
+    /// whether or not the data store should be readonly
+    #[argh(switch)]
+    readonly: bool,
 }
 
 impl AppConfig {
     pub fn load() -> Self {
-        argh::from_env()
+        let config: Self = argh::from_env();
+        if config.readonly && config.db.is_none() {
+            eprintln!(
+                "{}",
+                "Configuration error: --readonly requires --db to also be defined",
+            );
+            std::process::exit(1);
+        }
+
+        config
     }
 
     pub fn db(&self) -> &Option<String> {
         &self.db
+    }
+
+    pub fn readonly(&self) -> bool {
+        self.readonly
     }
 
     pub fn address(&self) -> String {

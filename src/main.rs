@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
     let config = AppConfig::load();
     let bind_address = config.address();
     let repo = if let Some(db) = &config.db() {
-        web::Data::new(Repo::create_with_file(db)?)
+        web::Data::new(Repo::create_with_file(db, config.readonly())?)
     } else {
         web::Data::new(Repo::create_in_memory()?)
     };

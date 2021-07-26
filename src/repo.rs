@@ -14,6 +14,7 @@ use indoc::indoc;
 use rusqlite::{
     params,
     Connection,
+    OpenFlags,
 };
 
 #[derive(Debug, Clone)]
@@ -29,9 +30,20 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub fn create_with_file<P: AsRef<Path>>(filename: P) -> anyhow::Result<Self> {
+    pub fn create_with_file<P: AsRef<Path>>(filename: P, readonly: bool) -> anyhow::Result<Self> {
+        let flags = if readonly {
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX
+                | OpenFlags::SQLITE_OPEN_URI
+        } else{
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+                | OpenFlags::SQLITE_OPEN_CREATE
+                | OpenFlags::SQLITE_OPEN_NO_MUTEX
+                | OpenFlags::SQLITE_OPEN_URI
+        };
+
         let repo = Repo {
-            connection: Mutex::new(Connection::open(filename)?),
+            connection: Mutex::new(Connection::open_with_flags(filename, flags)?),
         };
 
         repo.init_db()?;

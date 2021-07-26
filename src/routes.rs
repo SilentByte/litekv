@@ -5,7 +5,6 @@
 
 use actix_web::{
     web,
-    HttpRequest,
     HttpResponse,
     Responder,
 };
@@ -34,11 +33,14 @@ pub struct CommitInput {
 }
 
 pub async fn commit_data(
-    request: HttpRequest,
     config: web::Data<AppConfig>,
     repo: web::Data<Repo>,
     data: web::Json<CommitInput>,
 ) -> Result<HttpResponse, ApiError> {
+    if config.readonly() {
+        return Err(ApiError::ReadonlyDataStore);
+    }
+
     repo.commit_data(&data.scope, &data.key, &data.value, Utc::now(), None)?;
     Ok(HttpResponse::NoContent().finish())
 }
@@ -58,8 +60,6 @@ pub struct QueryResponse {
 }
 
 pub async fn query_data(
-    request: HttpRequest,
-    config: web::Data<AppConfig>,
     repo: web::Data<Repo>,
     data: web::Json<QueryInput>,
 ) -> Result<HttpResponse, ApiError> {
@@ -77,9 +77,7 @@ pub async fn query_data(
 }
 
 pub async fn get_data(
-    request: HttpRequest,
     web::Path((scope, key)): web::Path<(String, String)>,
-    config: web::Data<AppConfig>,
     repo: web::Data<Repo>,
 ) -> Result<HttpResponse, ApiError> {
     let result = repo.query_data(&scope, &key, Some(1))?.first().cloned();
