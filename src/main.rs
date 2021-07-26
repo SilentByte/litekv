@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
             .app_data(repo.clone())
             .wrap(Logger::default())
             .service(web::resource("/status").route(web::get().to(routes::status)))
-            .service(web::resource("/commit").route(web::post().to(routes::commit_data)))
+            .service(web::resource("/commit").route(web::post().to(routes::commit_multiple_data)))
             .service(web::resource("/query").route(web::post().to(routes::query_data)))
             .service(web::resource("/get/{scope}/{key}").route(web::get().to(routes::get_data)))
     })

@@ -24,6 +24,15 @@ pub struct QueryResult {
     pub expires_on: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Value {
+    pub scope: String,
+    pub key: String,
+    pub value: serde_json::Value,
+    pub created_on: DateTime<Utc>,
+    pub expires_on: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug)]
 pub struct Repo {
     connection: Mutex<Connection>,
@@ -81,27 +90,24 @@ impl Repo {
         Ok(())
     }
 
-    pub fn commit_data(
-        &self,
-        scope: &str,
-        key: &str,
-        value: &serde_json::Value,
-        created_on: DateTime<Utc>,
-        expires_on: Option<DateTime<Utc>>,
-    ) -> anyhow::Result<()> {
-        // language=sql
-        self.connection.lock().unwrap().execute(
-            indoc! {r#"
+    pub fn commit_values(&self, values: &[Value]) -> anyhow::Result<()> {
+        let mut db = self.connection.lock().unwrap();
+        let tx = db.transaction()?;
+
+        for v in values.into_iter() {
+            // language=sql
+            tx.prepare_cached(indoc! {r#"
                 INSERT INTO store (scope, key, value, created_on, expires_on)
                 VALUES (?1, ?2, ?3, ?4, ?5);
-            "#},
-            params![scope, key, value, created_on, expires_on],
-        )?;
+            "#})?
+                .execute(params![v.scope, v.key, v.value, v.created_on, v.expires_on])?;
+        }
 
+        tx.commit()?;
         Ok(())
     }
 
-    pub fn query_data(
+    pub fn query_values(
         &self,
         scope: &str,
         key: &str,

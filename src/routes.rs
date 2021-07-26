@@ -26,22 +26,35 @@ pub async fn status() -> impl Responder {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CommitInput {
+pub struct ValueInput {
     scope: String,
     key: String,
     value: serde_json::Value,
+    expires_on: Option<DateTime<Utc>>,
 }
 
-pub async fn commit_data(
+pub async fn commit_multiple_data(
     config: web::Data<AppConfig>,
     repo: web::Data<Repo>,
-    data: web::Json<CommitInput>,
+    data: web::Json<Vec<ValueInput>>,
 ) -> Result<HttpResponse, ApiError> {
     if config.readonly() {
         return Err(ApiError::ReadonlyDataStore);
     }
 
-    repo.commit_data(&data.scope, &data.key, &data.value, Utc::now(), None)?;
+    let values: Vec<crate::repo::Value> = data
+        .into_inner()
+        .into_iter()
+        .map(|v| crate::repo::Value {
+            scope: v.scope,
+            key: v.key,
+            value: v.value,
+            created_on: Utc::now(),
+            expires_on: v.expires_on,
+        })
+        .collect();
+
+    repo.commit_values(&values)?;
     Ok(HttpResponse::NoContent().finish())
 }
 
@@ -66,7 +79,7 @@ pub async fn query_data(
     data: web::Json<QueryInput>,
 ) -> Result<HttpResponse, ApiError> {
     let result: Vec<QueryResponse> = repo
-        .query_data(
+        .query_values(
             &data.scope,
             &data.key,
             data.start_on,
@@ -89,7 +102,7 @@ pub async fn get_data(
     repo: web::Data<Repo>,
 ) -> Result<HttpResponse, ApiError> {
     let result = repo
-        .query_data(&scope, &key, None, None, Some(1))?
+        .query_values(&scope, &key, None, None, Some(1))?
         .first()
         .cloned();
     if let Some(data) = result {
