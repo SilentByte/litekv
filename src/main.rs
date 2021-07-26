@@ -3,6 +3,7 @@
 ////! Copyright (c) 2021 SilentByte <https://silentbyte.com/>
 ////!
 
+use actix_web::middleware::Logger;
 use actix_web::{
     web,
     App,
@@ -28,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .data(config.clone())
             .app_data(repo.clone())
+            .wrap(Logger::default())
             .service(web::resource("/status").route(web::get().to(routes::status)))
             .service(web::resource("/commit").route(web::post().to(routes::commit_data)))
             .service(web::resource("/query").route(web::post().to(routes::query_data)))
