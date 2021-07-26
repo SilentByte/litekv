@@ -90,6 +90,6 @@ pub async fn get_data(
             expires_on: data.expires_on,
         }))
     } else {
-        Ok(HttpResponse::NotFound().finish())
+        Err(ApiError::ValueNotFound(key))
     }
 }

@@ -29,12 +29,16 @@ fn error_chain_fmt(
 pub enum ApiError {
     #[error(transparent)]
     UnknownError(#[from] anyhow::Error),
+
+    #[error("Value with key '{0}' could not be found")]
+    ValueNotFound(String),
 }
 
 impl ResponseError for ApiError {
     fn status_code(&self) -> StatusCode {
         match self {
             ApiError::UnknownError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::ValueNotFound(_) => StatusCode::NOT_FOUND,
         }
     }
 }
