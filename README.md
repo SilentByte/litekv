@@ -6,6 +6,14 @@
 
 LiteKV is a tiny key-value store with a simple REST API backed by SQLite.
 
+## Install
+
+```bash
+cargo install litekv
+```
+
+## Usage
+
 ```
 Usage: litekv [--host <host>] [--port <port>] [--db <db>] [--readonly]
 
