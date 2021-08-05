@@ -1,8 +1,16 @@
 
 [package]
 name = "litekv"
+description = "LiteKV is a tiny key-value store with a simple REST API backed by SQLite."
+authors = ["Rico A. Beti <rico.beti@silentbyte.com>"]
+license = "MIT"
 version = "0.1.0"
 edition = "2018"
+readme = "README.md"
+homepage = "https://github.com/SilentByte/litekv"
+repository = "https://github.com/SilentByte/litekv"
+keywords = ["key-value", "store", "sqlite", "rest"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 actix-web = "3.3.2"
